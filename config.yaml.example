@@ -1,0 +1,36 @@
+# config.yaml.example  ->  copy to config.yaml and edit
+# Works with PyYAML installed. Without PyYAML, use strict JSON syntax instead.
+
+alerts_file: /var/ossec/logs/alerts/alerts.json
+
+# ---- action settings ----
+notify:
+  webhook_url: ""        # Slack / Discord / generic incoming webhook
+
+block_ip:
+  enabled: false         # master safety switch - must be true to ever execute
+  allow_private: false   # block RFC1918 sources? usually no
+  command: "iptables -I INPUT -s {ip} -j DROP"
+  # OPNsense example (via ssh): "ssh opnsense pfctl -t blocklist -T add {ip}"
+
+# ---- playbooks: match Wazuh alerts -> run actions ----
+playbooks:
+  - name: ssh-brute-force
+    match:
+      rule_ids: [100001, 100002, 100003]
+    actions: [notify, block_ip]
+
+  - name: fim-critical-file
+    match:
+      rule_ids: [100010, 100011, 100012]
+    actions: [notify]           # never auto-block on FIM; human decides
+
+  - name: new-device
+    match:
+      rule_ids: [100020]
+    actions: [notify]
+
+  - name: high-severity-catchall
+    match:
+      min_level: 12
+    actions: [notify]
